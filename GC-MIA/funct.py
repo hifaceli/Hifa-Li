@@ -1,38 +1,17 @@
 import tensorflow as tf
 import numpy as np
 
-
-
-"""
-        Implmenentaion of ABCNNs
-        (https://arxiv.org/pdf/1512.05193.pdf)
-
-        :param s: sentence length
-        :param w: filter width
-        :param l2_reg: L2 regularization coefficient
-        :param model_type: Type of the network(BCNN, ABCNN1, ABCNN2, ABCNN3).选择模型
-        :param num_features: The number of pre-set features(not coming from CNN) used in the output layer. 特征图数
-        :param d0: dimensionality of word embedding(default: 300)
-        :param di: The number of convolution kernels (default: 50)  卷积核数量
-        :param num_classes: The number of classes for answers.
-        :param num_layers: The number of convolution layers.  卷积层数
-        """
-
-        # zero padding to inputs for wide convolution
-        #填充0  上下填充w-1 左右不填充
 def pad_for_wide_conv(x,w):
     return tf.pad(x, np.array([[0, 0], [0, 0], [w - 1, w - 1], [0, 0]]), "CONSTANT", name="pad_wide_conv")
 
-        #求A ij
+      
 def euclidean_score(v1, v2):
     euclidean = tf.sqrt(tf.reduce_sum(tf.square(v1 - v2), axis=1))
     return 1 / (1 + euclidean)
 
-        #求A matrix_transpose 转置
+        
 def make_attention_mat(x1, x2):
-            # x1, x2 = [batch, height, width, 1] = [batch, d, s, 1]
-            # x2 => [batch, height, 1, width]
-            # [batch, width, wdith] = [batch, s, s]
+           
     euclidean = tf.sqrt(tf.reduce_sum(tf.square(x1 - tf.matrix_transpose(x2)), axis=1))
     return 1 / (1 + euclidean)
 
@@ -129,21 +108,17 @@ def CNN_layer(variable_scope, x1, x2, d,s1,s2,model_type,l2_reg):
                                      initializer=tf.contrib.layers.xavier_initializer(),
                                      regularizer=tf.contrib.layers.l2_regularizer(scale=l2_reg))
 
-                        # [batch, s, s]  求出A
+                        
                 att_mat = make_attention_mat(x1, x2)
                 print("att_mat",att_mat.get_shape())
 
-                        # [batch, s, s] * [s,d] => [batch, s, d]
-                        # matrix transpose => [batch, d, s]
-                        # expand dims => [batch, d, s, 1]
-                        #einsum乘法
+                    
                 x1_a = tf.expand_dims(tf.matrix_transpose(tf.einsum("ijk,kl->ijl",att_mat, aW)), -1)
                 print("x1_a",x1_a.get_shape())
                 x2_a = tf.expand_dims(tf.matrix_transpose(
                     tf.einsum( "ijk,kl->ijl",tf.matrix_transpose(att_mat), bW)), -1)
                 print("x2_a", x2_a.get_shape())
-                        #变成两个通道
-                        # [batch, d, s, 2]
+                
 
                 x1 = tf.concat([x1, x1_a], axis=3)
                 x2 = tf.concat([x2, x2_a], axis=3)
